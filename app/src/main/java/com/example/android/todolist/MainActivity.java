@@ -18,6 +18,7 @@ package com.example.android.todolist;
 
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.LoaderManager;
@@ -77,6 +78,14 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
                 // Here is where you'll implement swipe to delete
+                int id = (int) viewHolder.itemView.getTag();
+                String stingId = Integer.toString(id);
+
+                Uri uri = TaskContract.TaskEntry.CONTENT_URI;
+                uri = uri.buildUpon().appendPath(stingId).build();
+
+                getContentResolver().delete(uri, null, null);
+                getSupportLoaderManager().restartLoader(TASK_LOADER_ID, null, MainActivity.this);
             }
         }).attachToRecyclerView(mRecyclerView);
 
@@ -149,16 +158,18 @@ public class MainActivity extends AppCompatActivity implements
             public Cursor loadInBackground() {
                 // Will implement to load data
 
+                // Query and load all task data in the background; sort by priority
+                // [Hint] use a try/catch block to catch any errors in loading data
+
                 try {
                     return getContentResolver().query(TaskContract.TaskEntry.CONTENT_URI,
                             null,
                             null,
                             null,
-                            null,
-                            null);
+                            TaskContract.TaskEntry.COLUMN_PRIORITY);
 
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to asynchronous load data.");
+                    Log.e(TAG, "Failed to asynchronously load data.");
                     e.printStackTrace();
                     return null;
                 }
@@ -186,7 +197,6 @@ public class MainActivity extends AppCompatActivity implements
         mAdapter.swapCursor(data);
     }
 
-
     /**
      * Called when a previously created loader is being reset, and thus
      * making its data unavailable.
@@ -200,4 +210,3 @@ public class MainActivity extends AppCompatActivity implements
         }
 
 }
-
