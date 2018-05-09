@@ -19,6 +19,7 @@ package com.example.android.todolist.data;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.UriMatcher;
 import android.database.Cursor;
 import android.net.Uri;
 import android.support.annotation.NonNull;
@@ -26,6 +27,22 @@ import android.support.annotation.NonNull;
 // Verify that TaskContentProvider extends from ContentProvider and implements required methods
 public class TaskContentProvider extends ContentProvider {
 
+    // It's convention to use 100, 200, 300, etc for directories,
+    // and related ints (101, 102, ..) for items in that directory.
+    private static final int TASKS = 100;
+    private static final int TASK_WITH_ID = 101;
+
+    private static UriMatcher uriMatcher;
+
+    private static UriMatcher buildUriMatcher() {
+        UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+
+        uriMatcher.addURI(TaskContract.AUTHORITY, TaskContract.PATH_TASKS, TASKS);
+        // single item
+        uriMatcher.addURI(TaskContract.AUTHORITY, TaskContract.PATH_TASKS, TASK_WITH_ID);
+
+        return uriMatcher;
+    }
     // Member variable for a TaskDbHelper that's initialized in the onCreate() method
     private TaskDbHelper mTaskDbHelper;
 
