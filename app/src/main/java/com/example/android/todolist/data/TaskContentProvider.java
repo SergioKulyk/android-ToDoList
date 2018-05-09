@@ -17,16 +17,16 @@
 package com.example.android.todolist.data;
 
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.NonNull;
+
+import static com.example.android.todolist.data.TaskContract.TaskEntry.TABLE_NAME;
 
 // Verify that TaskContentProvider extends from ContentProvider and implements required methods
 public class TaskContentProvider extends ContentProvider {
@@ -80,37 +80,66 @@ public class TaskContentProvider extends ContentProvider {
     }
 
 
+    // Implement insert to handle requests to insert a single new row of data
     @Override
     public Uri insert(@NonNull Uri uri, ContentValues values) {
+        // Get access to the task database (to write new data to)
         final SQLiteDatabase db = mTaskDbHelper.getWritableDatabase();
 
+        // Write URI matching code to identify the match for the tasks directory
         int match = sUriMatcher.match(uri);
-        Uri returnUri;
+        Uri returnUri; // URI to be returned
+
         switch (match) {
             case TASKS:
-                long id = db.insert(TaskContract.TaskEntry.TABLE_NAME, null, values);
-                if (id > 0) {
-                    // success
+                // Insert new values into the database
+                // Inserting values into tasks table
+                long id = db.insert(TABLE_NAME, null, values);
+                if ( id > 0 ) {
                     returnUri = ContentUris.withAppendedId(TaskContract.TaskEntry.CONTENT_URI, id);
                 } else {
-                    throw new SQLException("Failed to insert row into " + uri);
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
                 }
+                break;
+            // Set the value for the returnedUri and write the default case for unknown URI's
+            // Default case throws an UnsupportedOperationException
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+
+        // Notify the resolver if the uri has been changed, and return the newly inserted URI
+        getContext().getContentResolver().notifyChange(uri, null);
+
+        // Return constructed uri (this points to the newly inserted row of data)
+        return returnUri;
+    }
+
+
+    // Implement query to handle requests for data by URI
+    @Override
+    public Cursor query(@NonNull Uri uri, String[] projection, String selection,
+                        String[] selectionArgs, String sortOrder) {
+        final SQLiteDatabase db = mTaskDbHelper.getReadableDatabase();
+
+        int match = sUriMatcher.match(uri);
+        Cursor retCursor;
+        switch (match) {
+            case TASKS:
+                retCursor = db.query(
+                        TaskContract.TaskEntry.TABLE_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        sortOrder);
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown uri " + uri);
         }
 
-        getContext().getContentResolver().notifyChange(returnUri, null);
-
-        return returnUri;
-    }
-
-
-    @Override
-    public Cursor query(@NonNull Uri uri, String[] projection, String selection,
-                        String[] selectionArgs, String sortOrder) {
-
-        throw new UnsupportedOperationException("Not yet implemented");
+        retCursor.setNotificationUri(getContext().getContentResolver(), uri);
+        return retCursor;
     }
 
 
